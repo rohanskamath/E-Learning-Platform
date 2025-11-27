@@ -2,6 +2,7 @@ using backend.Domain.Entities;
 using backend.Domain.Interfaces__Ports_;
 using backend.Infrastructure.Persistence.Configurations;
 using backend.Infrastructure.Persistence.Repositories;
+using backend.Infrastructure.Middleware;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,12 +19,14 @@ builder.Services.AddDbContext<ApplicationDBContext>(options =>
     options.UseSqlServer(connectionString));
 
 // Register Identity using your ApplicationUsers
+builder.Services.AddDataProtection();
 builder.Services.AddIdentityCore<ApplicationUsers>(options =>
 {
     options.User.RequireUniqueEmail = true;
 })
     .AddRoles<IdentityRole<Guid>>()
-    .AddEntityFrameworkStores<ApplicationDBContext>();
+    .AddEntityFrameworkStores<ApplicationDBContext>()
+    .AddDefaultTokenProviders();
 
 // Register MediatR
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(AppDomain.CurrentDomain.GetAssemblies()));
@@ -48,6 +51,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseGlobalExceptionHandling();
 
 app.UseHttpsRedirection();
 

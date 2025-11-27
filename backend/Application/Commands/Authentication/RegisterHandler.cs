@@ -18,9 +18,16 @@ namespace backend.Application.Commands.Authentication
             _userManager = userManager;
         }
 
-
         public async Task<Guid> Handle(RegisterCommand request, CancellationToken cancellationToken)
         {
+            // Basic input validation
+            if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password) || string.IsNullOrWhiteSpace(request.Role))
+            {
+                throw new ArgumentException("Email, password and role are required.");
+            }
+
+            var role = request.Role.Trim();
+
             // Create User in Identity System
             var user = new ApplicationUsers
             {
@@ -28,13 +35,25 @@ namespace backend.Application.Commands.Authentication
                 Email = request.Email,
                 FirstName = request.FirstName,
             };
-            var result = await _userManager.CreateAsync(user, request.Password);
+            var createResult = await _userManager.CreateAsync(user, request.Password);
+            if (!createResult.Succeeded)
+            {
+                var message = string.Join("; ", createResult.Errors.Select(e => $"{e.Code}: {e.Description}"));
+                throw new InvalidOperationException($"User creation failed. {message}");
+            }
 
             // Assign Role to User
-            await _userManager.AddToRoleAsync(user, request.Role);
-            if (request.Role.Equals("Student", StringComparison.OrdinalIgnoreCase))
+            var roleResult = await _userManager.AddToRoleAsync(user, role);
+            if (!roleResult.Succeeded)
             {
-                Console.WriteLine("Registering Student...");
+                var message = string.Join("; ", roleResult.Errors.Select(e => $"{e.Code}: {e.Description}"));
+                // Cleanup created user if role assignment fails
+                await _userManager.DeleteAsync(user);
+                throw new InvalidOperationException($"Role assignment failed. {message}");
+            }
+
+            if (role.Equals("Student", StringComparison.OrdinalIgnoreCase))
+            {
                 var student = new Student
                 {
                     StudentId = Guid.NewGuid(),
@@ -43,7 +62,7 @@ namespace backend.Application.Commands.Authentication
                 await _authentication.RegisterStudent(student);
                 return student.StudentId;
             }
-            else if (request.Role.Equals("Teacher", StringComparison.OrdinalIgnoreCase))
+            else if (role.Equals("Teacher", StringComparison.OrdinalIgnoreCase))
             {
                 var teacher = new Teacher
                 {
@@ -56,7 +75,7 @@ namespace backend.Application.Commands.Authentication
             else
             {
                 await _userManager.DeleteAsync(user);
-                return Guid.Empty;
+                throw new ArgumentException("Role must be either 'Student' or 'Teacher'.");
             }
         }
     }
