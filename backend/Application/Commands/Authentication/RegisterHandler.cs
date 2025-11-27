@@ -22,17 +22,41 @@ namespace backend.Application.Commands.Authentication
         public async Task<Guid> Handle(RegisterCommand request, CancellationToken cancellationToken)
         {
             // Create User in Identity System
-            var user=new ApplicationUsers
+            var user = new ApplicationUsers
             {
                 UserName = request.Email,
                 Email = request.Email,
+                FirstName = request.FirstName,
             };
-
             var result = await _userManager.CreateAsync(user, request.Password);
-            await _userManager.AddToRoleAsync(user, request.Role);
-            if(request.Role.ToLower()=="student")
-            {
 
+            // Assign Role to User
+            await _userManager.AddToRoleAsync(user, request.Role);
+            if (request.Role.Equals("Student", StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine("Registering Student...");
+                var student = new Student
+                {
+                    StudentId = Guid.NewGuid(),
+                    FkUserId = user.Id,
+                };
+                await _authentication.RegisterStudent(student);
+                return student.StudentId;
+            }
+            else if (request.Role.Equals("Teacher", StringComparison.OrdinalIgnoreCase))
+            {
+                var teacher = new Teacher
+                {
+                    TeacherId = Guid.NewGuid(),
+                    FkUserId = user.Id,
+                };
+                await _authentication.RegisterTeacher(teacher);
+                return teacher.TeacherId;
+            }
+            else
+            {
+                await _userManager.DeleteAsync(user);
+                return Guid.Empty;
             }
         }
     }

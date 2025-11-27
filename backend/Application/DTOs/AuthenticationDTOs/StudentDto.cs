@@ -10,8 +10,6 @@
         public DateTime? DateOfBirth { get; set; }
         public string? PhoneNumber { get; set; }
         public string? Address { get; set; } = null;
-        public int Level { get; set; }
-        public required string TimeZone { get; set; }
         public int Status { get; set; } = 1;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }

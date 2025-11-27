@@ -1,5 +1,7 @@
 using backend.Domain.Entities;
+using backend.Domain.Interfaces__Ports_;
 using backend.Infrastructure.Persistence.Configurations;
+using backend.Infrastructure.Persistence.Repositories;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -23,8 +25,22 @@ builder.Services.AddIdentityCore<ApplicationUsers>(options =>
     .AddRoles<IdentityRole<Guid>>()
     .AddEntityFrameworkStores<ApplicationDBContext>();
 
+// Register MediatR
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(AppDomain.CurrentDomain.GetAssemblies()));
+
+// Register AutoMapper
+builder.Services.AddAutoMapper(typeof(Program));
+
+// Register Custom Services
+builder.Services.AddScoped<IAuthentication, AuthenticationImplementation>();
 
 var app = builder.Build();
+
+using(var scope = app.Services.CreateScope())
+{
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+    await SeedDataConfig.SeedRolesAsync(roleManager);
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

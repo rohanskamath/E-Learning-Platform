@@ -11,7 +11,6 @@
         public string? PhoneNumber { get; set; }
         public string? Address { get; set; } = null;
         public int Experience { get; set; }
-        public required string TimeZone { get; set; }
         public decimal HourlyRate { get; set; }
         public int Status { get; set; } = 1;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
